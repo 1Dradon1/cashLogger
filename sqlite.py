@@ -22,7 +22,6 @@ class Database:
     def get_all_users(self):
         all_users = self.execute("SELECT user FROM CashLogger")
         user_names = [item[0] for item in all_users]
-        print(type(user_names))
         return user_names
 
     def create_user(self, user, balance):

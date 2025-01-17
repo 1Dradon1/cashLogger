@@ -5,9 +5,9 @@ import prettytable as pt
 from sqlite import Database
 
 db = Database()
-token = ""
+token = "7292719491:AAELv55ohhCN_IXnLzgRqP3SkjxUBjs383w"
 bot = TeleBot(token)
-ids = []
+ids = [540708864, 383063470]
 user_state = {}
 
 @bot.message_handler(commands=['start', 'go'])
@@ -20,29 +20,31 @@ def start_handler(message):
         markup.row(KeyboardButton("New user"), KeyboardButton("Remove user"))
         bot.send_message(message.chat.id, "Чем займемся сегодня?", reply_markup=markup)
 
-
-@bot.message_handler(commands=['help'])
-def send_help(message):
-    if auth(message):
-        bot.send_message(message.chat.id,
-                     """
-                     deposit
-                     """)
-
-def chosen(message):
-    print("ads")
-
 @bot.message_handler(func=lambda message: message.text == "Deposit")
 def message_reply(message):
     if auth(message):
         user_state.clear()
-        users = InlineKeyboardMarkup()
-        [users.add(InlineKeyboardButton(user, callback_data=f"deposit_{user}")) for user in db.get_all_users()]
+        users = InlineKeyboardMarkup(row_width=2)
+        all_users = db.get_all_users()
+        while all_users:
+            user = all_users.pop()
+            if all_users:
+                user2 = all_users.pop()
+                users.row(
+                    InlineKeyboardButton(user, callback_data=f"deposit_{user}"),
+                    InlineKeyboardButton(user2, callback_data=f"deposit_{user2}")
+                )
+            else:
+                users.row(
+                    InlineKeyboardButton(user, callback_data=f"deposit_{user}"),
+                )
+
+
         bot.send_message(message.chat.id, "Выберите пользователя для депозита:", reply_markup=users)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("deposit_"))
 def select_user_for_deposit(call):
-    user = call.data.split("_")[1]
+    user = call.data[8:]
     user_state[call.from_user.id] = {"action": "deposit", "user": user}
     bot.send_message(call.message.chat.id, "Введите сумму для депозита:")
 
@@ -52,7 +54,7 @@ def select_user_for_deposit(call):
     func=lambda message: message.chat.id in user_state and user_state[message.chat.id]["action"] == "deposit")
 def process_deposit_amount(message):
     try:
-        amount = float(message.text)
+        amount = int(message.text)
         user = user_state[message.chat.id]["user"]
         current_balance = db.deposit_user_balance(user, amount)
 
@@ -117,7 +119,12 @@ def auth(message):
     else:
         return True
 
-bot.polling()
+while True:
+    try:
+        bot.polling()
+    except Exception as e:
+        print(e)
+        continue
 
 
 
